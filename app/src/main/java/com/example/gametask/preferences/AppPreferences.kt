@@ -87,13 +87,27 @@ class AppPreferences @Inject constructor(appContext: Context)  {
     }
 
     suspend fun updateGameCurrentHighScore(keyGameName: String, highScore: Int) {
-        val key = intPreferencesKey(keyGameName+"GameHighScore")
+        val key = intPreferencesKey(keyGameName+"CurrentHighScore")
         dataStore.edit { settings ->
             settings[key] = highScore
         }
     }
     fun getGameCurrentHighScore(keyGameName: String): Flow<Int> {
-        val key = intPreferencesKey(keyGameName+"GameHighScore")
+        val key = intPreferencesKey(keyGameName+"CurrentHighScore")
+        return dataStore.data
+            .map { preferences ->
+                preferences[key] ?: 0
+            }
+    }
+
+    suspend fun updateGameCurrentScore(keyGameName: String, currentScore: Int) {
+        val key = intPreferencesKey(keyGameName+"currentScore")
+        dataStore.edit { settings ->
+            settings[key] = currentScore
+        }
+    }
+    fun getGameCurrentScore(keyGameName: String): Flow<Int> {
+        val key = intPreferencesKey(keyGameName+"currentScore")
         return dataStore.data
             .map { preferences ->
                 preferences[key] ?: 0
@@ -101,10 +115,7 @@ class AppPreferences @Inject constructor(appContext: Context)  {
     }
 
 
-    val isDarkThe: Flow<Boolean> = dataStore.data
-        .map { preferences ->
-            preferences[APP_THEMEee] ?: true
-        }
+
 
 
     companion object {

@@ -16,7 +16,7 @@ data class Game(
 
 val games = listOf(
     Game(name = MyGames.CLOCK.value, icon = Icons.Default.Alarm, description = ""),
-    Game(name = "", icon = Icons.Default.HourglassEmpty, description = ""),
+    Game(name = MyGames.HOURGLASS.value, icon = Icons.Default.HourglassEmpty, description = ""),
     Game(name = "", icon = Icons.Default.PlayForWork, description = ""),
     Game(name = "", icon = Icons.Default.PlayForWork, description = ""),
     Game(name = "", icon = Icons.Default.PlayForWork, description = ""),

@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Stairs
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,42 +40,57 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavHostController
 import com.example.gametask.R
 import com.example.gametask.SoundManager
-import com.example.gametask.utils.Constants.LEVEL_INCREMENT_MULTIPLE_VALUE
+import com.example.gametask.utils.Constants.HOURGLASS_LEVEL_SCORE_VALUE
+import com.example.gametask.utils.Constants.HOURGLASS_SCORE_INCREMENT_VALUE
 import com.example.gametask.utils.generateResultOption
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
 @Composable
-fun GamePlayingScreen(
+fun HourglassGamePlayingScreen(
     navController: NavHostController,
     viewModel: MainViewModel,
     soundManager: SoundManager
 ) {
 
+    val currentScore by viewModel.getGameCurrentScore(viewModel.currentGame!!.name).collectAsState(initial = 0)
     val bestScore by viewModel.getGameCurrentHighScore(viewModel.currentGame!!.name).collectAsState(initial = 0)
     val currentGameLevel by viewModel.getCurrentGameLevel(viewModel.currentGame!!.name).collectAsState(initial = 0)
+
+    var score by remember { mutableIntStateOf(0) }
 
     var isGameCompleted by remember { mutableStateOf(false) }
     var isGameWon by remember { mutableStateOf(false) }
 
-    var selectedOption by remember { mutableIntStateOf(-1) }
-
-    var score by remember { mutableIntStateOf(0) }
-
-    var providedSecond by remember { mutableIntStateOf(10) }
-    var availableSecond by remember { mutableIntStateOf(10) }
-
-    var firstNum by remember { mutableStateOf(-1) }
-    var secondNum by remember { mutableStateOf(-1) }
-
-    var result by remember { mutableStateOf(-1) }
-
-    var option1 by remember { mutableStateOf(-1) }
-    var option2 by remember { mutableStateOf(-1) }
-    var option3 by remember { mutableStateOf(-1) }
-    var option4 by remember { mutableStateOf(-1) }
+    var firstNum by remember { mutableIntStateOf(-1) }
+    var secondNum by remember { mutableIntStateOf(-1) }
 
     var operationType by remember { mutableStateOf("+") }
+
+    var selectedOption by remember { mutableIntStateOf(-1) }
+
+    var result by remember { mutableIntStateOf(-1) }
+
+    var availableSecond by remember { mutableIntStateOf(30) }
+
+    var option1 by remember { mutableIntStateOf(-1) }
+    var option2 by remember { mutableIntStateOf(-1) }
+    var option3 by remember { mutableIntStateOf(-1) }
+    var option4 by remember { mutableIntStateOf(-1) }
+
+    var successfulStepCount by remember { mutableIntStateOf(1) }
+
+    var isWrongAnswerSelected by remember { mutableStateOf(false) }
+
+    var correctAnswerCount by remember { mutableIntStateOf(0) }
+
+
+    DisposableEffect(key1 = Unit, effect = {
+        soundManager.playMusic()
+        onDispose {
+            soundManager.pauseMusic()
+        }
+    })
 
     fun generateRandomTwoNumber() {
         val random = Random
@@ -87,6 +102,7 @@ fun GamePlayingScreen(
             secondNum = random.nextInt(1, 31)
         }
     }
+
 
     fun getResult(){
         result = if (firstNum > secondNum){
@@ -108,14 +124,6 @@ fun GamePlayingScreen(
         }
     }
 
-
-    DisposableEffect(key1 = Unit, effect = {
-        soundManager.playMusic()
-        onDispose {
-            soundManager.pauseMusic()
-        }
-    })
-
     // LaunchedEffect to run the logic every second
     LaunchedEffect(true) {
         selectedOption = -1
@@ -130,21 +138,20 @@ fun GamePlayingScreen(
         while (true) {
             // Simulate a condition being met
 
-            if (score >= (LEVEL_INCREMENT_MULTIPLE_VALUE * currentGameLevel)){
-                viewModel.updateGameLevel(viewModel.currentGame!!.name, currentLevel = (currentGameLevel + 1))
-                viewModel.updateGameCurrentHighScore(viewModel.currentGame!!.name, 0)
-                soundManager.playSound(R.raw.game_level_complete)
-                isGameWon = true
-                isGameCompleted = true
-                break
-            }
-
             if (availableSecond == 0) {
                 println("Condition met. Breaking loop.")
-                soundManager.playSound(R.raw.error)
                 isGameCompleted = true
                 if (bestScore < score){
                     viewModel.updateGameCurrentHighScore(viewModel.currentGame!!.name, score)
+                }
+                if (HOURGLASS_LEVEL_SCORE_VALUE <= (score + currentScore)){
+                    soundManager.playSound(R.raw.game_level_complete)
+                    viewModel.updateGameLevel(viewModel.currentGame!!.name, currentLevel = (currentGameLevel + 1))
+                    viewModel.updateGameCurrentScore(viewModel.currentGame!!.name, 0)
+                    isGameWon = true
+                }else{
+                    soundManager.playSound(R.raw.error)
+                    viewModel.updateGameCurrentScore(viewModel.currentGame!!.name, currentScore + score)
                 }
                 break
             }else{
@@ -152,15 +159,12 @@ fun GamePlayingScreen(
             }
 
             if (selectedOption != -1 && selectedOption != result){
-                isGameCompleted = true
+                selectedOption = -1
                 soundManager.playSound(R.raw.error)
-                if (bestScore < score){
-                    viewModel.updateGameCurrentHighScore(viewModel.currentGame!!.name, score)
-                }
-                break
-            }
-
-            if (result == selectedOption){
+                successfulStepCount = 1
+                correctAnswerCount = 0
+                isWrongAnswerSelected = true
+            }else if (result == selectedOption){
                 selectedOption = -1
                 generateRandomTwoNumber()
                 getResult()
@@ -169,15 +173,21 @@ fun GamePlayingScreen(
                 option2 = options[1]
                 option3 = options[2]
                 option4 = options[3]
-                if (score >( (currentGameLevel * LEVEL_INCREMENT_MULTIPLE_VALUE) * 0.7)){
-                    availableSecond = 7
-                    providedSecond = 7
-                } else {
-                    availableSecond = 10
+
+                if (isWrongAnswerSelected){
+                    isWrongAnswerSelected = false
+                }else{
+                    correctAnswerCount++
+                     if (correctAnswerCount == 4){
+                        correctAnswerCount = 1
+                         successfulStepCount++
+                         score += (successfulStepCount * HOURGLASS_SCORE_INCREMENT_VALUE)
+                    }else{
+                         score += 20
+                    }
                 }
-                score += 20
             }
-            if (availableSecond < 4){
+            if (availableSecond < 5){
                 soundManager.playSound(R.raw.warning)
             }else{
                 soundManager.playSound(R.raw.timer)
@@ -188,12 +198,16 @@ fun GamePlayingScreen(
 
     }
 
+
     Scaffold { paddingValues ->
         if (isGameCompleted){
             soundManager.pauseMusic()
             if (isGameWon){
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).padding(all = 12.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(all = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ){
@@ -219,7 +233,10 @@ fun GamePlayingScreen(
                 }
             }else{
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).padding(all = 12.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(all = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -262,7 +279,7 @@ fun GamePlayingScreen(
                     )
                 }
             }
-         }else{
+        }else{
             ConstraintLayout(
                 modifier = Modifier
                     .fillMaxSize()
@@ -280,20 +297,12 @@ fun GamePlayingScreen(
                             end.linkTo(parent.end)
                         }
                 ) {
-                    LinearProgressIndicator(
-                        progress = availableSecond / providedSecond.toFloat(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(height = 16.dp),
-                        color =  Color.Green.copy(0.8f, red = 0.2f, green = 0.7f),
-                        trackColor =   Color.LightGray
-                    )
-                    Spacer(modifier = Modifier.height(height = 12.dp))
+
                     ConstraintLayout(
                         modifier = Modifier
                             .fillMaxWidth()
                     ) {
-                        val (clock, level) = createRefs()
+                        val (clock, level, tik) = createRefs()
 
                         Row(
                             horizontalArrangement = Arrangement.Center,
@@ -301,7 +310,6 @@ fun GamePlayingScreen(
                             modifier = Modifier
                                 .constrainAs(clock) {
                                     top.linkTo(parent.top)
-                                    bottom.linkTo(parent.bottom)
                                     start.linkTo(parent.start)
                                 }
                         ) {
@@ -313,22 +321,50 @@ fun GamePlayingScreen(
                                 text = availableSecond.toString(),
                                 style = MaterialTheme.typography.headlineLarge,
                                 color = if (availableSecond < 4) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
-                                )
+                            )
                         }
 
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .constrainAs(level) {
                                     top.linkTo(parent.top)
-                                    bottom.linkTo(parent.bottom)
                                     start.linkTo(parent.start)
                                     end.linkTo(parent.end)
                                 }
                         ) {
-                            Icon(imageVector = Icons.Default.Stairs,  modifier = Modifier.size(size = 40.dp), contentDescription = null)
-                            Text(text = score.toString(),  style = MaterialTheme.typography.headlineLarge,)
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(imageVector = Icons.Default.Stairs,  modifier = Modifier.size(size = 40.dp), contentDescription = null)
+                                Text(text = score.toString(),  style = MaterialTheme.typography.headlineLarge,)
+                            }
+                            Text(text = if(successfulStepCount > 1) (successfulStepCount * HOURGLASS_SCORE_INCREMENT_VALUE).toString()+"+" else "",  style = MaterialTheme.typography.headlineMedium,)
+                        }
+
+
+                        Row(
+                            modifier = Modifier
+                                .width(width = 150.dp)
+                                .constrainAs(tik) {
+                                    top.linkTo(level.bottom, margin = 40.dp)
+                                    bottom.linkTo(parent.bottom)
+                                    start.linkTo(parent.start)
+                                    end.linkTo(parent.end)
+                                },
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Icon(imageVector = Icons.Default.CloudDone,  contentDescription = null,
+                                tint = if (correctAnswerCount >= 1) Color.Green.copy(0.8f, red = 0.2f, green = 0.7f) else MaterialTheme.colorScheme.onBackground
+                            )
+                            Icon(imageVector = Icons.Default.CloudDone, contentDescription = null,
+                                tint = if (correctAnswerCount >= 2) Color.Green.copy(0.8f, red = 0.2f, green = 0.7f) else MaterialTheme.colorScheme.onBackground
+                            )
+                            Icon(imageVector = Icons.Default.CloudDone, contentDescription = null,
+                                tint = if (correctAnswerCount >= 3) Color.Green.copy(0.8f, red = 0.2f, green = 0.7f) else MaterialTheme.colorScheme.onBackground
+                            )
                         }
                     }
                 }
@@ -369,9 +405,9 @@ fun GamePlayingScreen(
                                 .background(color = MaterialTheme.colorScheme.primary)
                                 .clickable {
                                     selectedOption = option1
-                                    if (result == option1){
+                                    if (result == option1) {
                                         soundManager.playSound(R.raw.positive)
-                                    }else{
+                                    } else {
                                         soundManager.playSound(R.raw.error)
                                     }
                                 }
@@ -390,9 +426,9 @@ fun GamePlayingScreen(
                                 .background(color = MaterialTheme.colorScheme.primary)
                                 .clickable {
                                     selectedOption = option2
-                                    if (result == option2){
+                                    if (result == option2) {
                                         soundManager.playSound(R.raw.positive)
-                                    }else{
+                                    } else {
                                         soundManager.playSound(R.raw.error)
                                     }
                                 }
@@ -418,9 +454,9 @@ fun GamePlayingScreen(
                                 .background(color = MaterialTheme.colorScheme.primary)
                                 .clickable {
                                     selectedOption = option3
-                                    if (result == option3){
+                                    if (result == option3) {
                                         soundManager.playSound(R.raw.positive)
-                                    }else{
+                                    } else {
                                         soundManager.playSound(R.raw.error)
                                     }
                                 }
@@ -439,9 +475,9 @@ fun GamePlayingScreen(
                                 .background(color = MaterialTheme.colorScheme.primary)
                                 .clickable {
                                     selectedOption = option4
-                                    if (result == option4){
+                                    if (result == option4) {
                                         soundManager.playSound(R.raw.positive)
-                                    }else{
+                                    } else {
                                         soundManager.playSound(R.raw.error)
                                     }
                                 }
@@ -450,7 +486,7 @@ fun GamePlayingScreen(
                                 text = option4.toString(),
                                 style = MaterialTheme.typography.headlineLarge,
                                 color = MaterialTheme.colorScheme.onPrimary
-                                )
+                            )
                         }
                     }
                 }
@@ -460,4 +496,5 @@ fun GamePlayingScreen(
         }
 
     }
+
 }

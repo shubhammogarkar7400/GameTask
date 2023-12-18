@@ -14,25 +14,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -44,13 +36,11 @@ import com.example.gametask.screens.AppLoadingAnimation
 import com.example.gametask.screens.GamePlayingScreen
 import com.example.gametask.screens.GameStartScreen
 import com.example.gametask.screens.HomeScreen
+import com.example.gametask.screens.HourglassGamePlayingScreen
 import com.example.gametask.screens.MainViewModel
 import com.example.gametask.screens.SettingScreen
-import com.example.gametask.ui.theme.DarkColorScheme
-import com.example.gametask.ui.theme.LightColorScheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -163,8 +153,11 @@ fun InterviewGameTask(viewModel: MainViewModel, soundManager: SoundManager) {
         composable(ScreenDestinations.GAME_START_SCREEN.route) {
             GameStartScreen(navController, viewModel, soundManager)
         }
-        composable(ScreenDestinations.GAME_PLAYING_SCREEN.route) {
+        composable(ScreenDestinations.CLOCK_GAME_PLAYING_SCREEN.route) {
             GamePlayingScreen(navController, viewModel, soundManager)
+        }
+        composable(ScreenDestinations.HOURGLASS_GAME_PLAYING_SCREEN.route) {
+            HourglassGamePlayingScreen(navController, viewModel, soundManager)
         }
     }
 

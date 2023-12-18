@@ -1,7 +1,5 @@
 package com.example.gametask.screens
 
-import android.content.Context
-import android.media.AudioManager
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,9 +31,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.gametask.R
 import com.example.gametask.SoundManager
+import com.example.gametask.enums.MyGames
 import com.example.gametask.enums.ScreenDestinations
-import com.example.gametask.utils.Constants
-import com.example.gametask.utils.Constants.LEVEL_INCREMENT_MULTIPLE_VALUE
+import com.example.gametask.utils.Constants.CLOCK_LEVEL_INCREMENT_MULTIPLE_VALUE
+import com.example.gametask.utils.Constants.HOURGLASS_LEVEL_SCORE_VALUE
 
 @Composable
 fun GameStartScreen(
@@ -45,10 +44,11 @@ fun GameStartScreen(
 ) {
     val context = LocalContext.current
 
+    val currentScore by viewModel.getGameCurrentScore(viewModel.currentGame!!.name).collectAsState(initial = 0)
+
     val bestScore by viewModel.getGameCurrentHighScore(viewModel.currentGame!!.name).collectAsState(initial = 0)
 
     val currentGameLevel by viewModel.getCurrentGameLevel(viewModel.currentGame!!.name).collectAsState(initial = 1)
-    val totalGameLevel = 10
 
 
 
@@ -99,20 +99,36 @@ fun GameStartScreen(
                     style = MaterialTheme.typography.headlineLarge
                 )
                 Spacer(modifier = Modifier.height(32.dp))
-                Text(
-                    text = "Score: $bestScore/${LEVEL_INCREMENT_MULTIPLE_VALUE * currentGameLevel}",
-                    style = MaterialTheme.typography.headlineLarge,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (viewModel.currentGame!!.name == MyGames.CLOCK.value){
+                    Text(
+                        text = "Score: $bestScore/${CLOCK_LEVEL_INCREMENT_MULTIPLE_VALUE * currentGameLevel}",
+                        style = MaterialTheme.typography.headlineLarge,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = bestScore / (currentGameLevel.toFloat() * CLOCK_LEVEL_INCREMENT_MULTIPLE_VALUE),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(height = 16.dp),
+                        color = Color.Green.copy(0.8f, red = 0.2f, green = 0.7f)
+                    )
+                } else if (viewModel.currentGame!!.name == MyGames.HOURGLASS.value) {
+                    Text(
+                        text = "Score: $currentScore/$HOURGLASS_LEVEL_SCORE_VALUE",
+                        style = MaterialTheme.typography.headlineLarge,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = currentScore / HOURGLASS_LEVEL_SCORE_VALUE.toFloat(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(height = 16.dp),
+                        color = Color.Green.copy(0.8f, red = 0.2f, green = 0.7f)
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = bestScore / (currentGameLevel.toFloat() * LEVEL_INCREMENT_MULTIPLE_VALUE),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(height = 16.dp),
-                    color = Color.Green.copy(0.8f, red = 0.2f, green = 0.7f)
-                )
                 Spacer(modifier = Modifier.height(16.dp))
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
@@ -121,7 +137,14 @@ fun GameStartScreen(
                         .size(40.dp)
                         .clickable {
                             soundManager.playSound(R.raw.click)
-                            navController.navigate(ScreenDestinations.GAME_PLAYING_SCREEN.route)
+                            when(viewModel.currentGame!!.name){
+                                MyGames.CLOCK.value -> {
+                                    navController.navigate(ScreenDestinations.CLOCK_GAME_PLAYING_SCREEN.route)
+                                }
+                                MyGames.HOURGLASS.value -> {
+                                    navController.navigate(ScreenDestinations.HOURGLASS_GAME_PLAYING_SCREEN.route)
+                                }
+                            }
                         }
                 )
 

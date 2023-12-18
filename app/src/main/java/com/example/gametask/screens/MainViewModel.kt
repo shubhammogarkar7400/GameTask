@@ -112,6 +112,15 @@ class MainViewModel @Inject constructor(
     fun getGameCurrentHighScore(keyGameName: String) : Flow<Int> = appPreferences.getGameCurrentHighScore(keyGameName = keyGameName)
 
 
+    fun updateGameCurrentScore(keyGameName: String, currentScore: Int) {
+        viewModelScope.launch {
+            appPreferences.updateGameCurrentScore(keyGameName = keyGameName, currentScore = currentScore)
+        }
+    }
+    fun getGameCurrentScore(keyGameName: String) : Flow<Int> = appPreferences.getGameCurrentScore(keyGameName = keyGameName)
+
+
+
 
     fun setNotificationReminder(trainingReminder: Boolean, trainingReminderTime: Long) {
         if (trainingReminder){
